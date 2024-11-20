@@ -1,15 +1,13 @@
 package champollion;
 
 public class UE {
-    private final String myIntitule;
+    private final String intitule;
 
     public UE(String intitule) {
-        myIntitule = intitule;
+        this.intitule = intitule;
     }
 
     public String getIntitule() {
-        return myIntitule;
+        return intitule;
     }
-
-    
 }

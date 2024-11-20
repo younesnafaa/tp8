@@ -1,55 +1,69 @@
 package champollion;
 
-/**
- * Un enseignant est caractérisé par les informations suivantes : son nom, son adresse email, et son service prévu,
- * et son emploi du temps.
- */
-public class Enseignant extends Personne {
+import java.util.*;
 
-    // TODO : rajouter les autres méthodes présentes dans le diagramme UML
+public class Enseignant extends Personne {
+    private final Map<UE, ServicePrevu> servicesPrevus = new HashMap<>();
+    private final List<Intervention> interventions = new ArrayList<>();
 
     public Enseignant(String nom, String email) {
         super(nom, email);
     }
 
-    /**
-     * Calcule le nombre total d'heures prévues pour cet enseignant en "heures équivalent TD" Pour le calcul : 1 heure
-     * de cours magistral vaut 1,5 h "équivalent TD" 1 heure de TD vaut 1h "équivalent TD" 1 heure de TP vaut 0,75h
-     * "équivalent TD"
-     *
-     * @return le nombre total d'heures "équivalent TD" prévues pour cet enseignant, arrondi à l'entier le plus proche
-     *
-     */
     public int heuresPrevues() {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        int total = 0;
+        for (ServicePrevu service : servicesPrevus.values()) {
+            total += service.getVolumeCM() * 1.5;
+            total += service.getVolumeTD();
+            total += service.getVolumeTP() * 0.75;
+        }
+        return (int) Math.round(total);
     }
 
-    /**
-     * Calcule le nombre total d'heures prévues pour cet enseignant dans l'UE spécifiée en "heures équivalent TD" Pour
-     * le calcul : 1 heure de cours magistral vaut 1,5 h "équivalent TD" 1 heure de TD vaut 1h "équivalent TD" 1 heure
-     * de TP vaut 0,75h "équivalent TD"
-     *
-     * @param ue l'UE concernée
-     * @return le nombre total d'heures "équivalent TD" prévues pour cet enseignant, arrondi à l'entier le plus proche
-     *
-     */
     public int heuresPrevuesPourUE(UE ue) {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        if (!servicesPrevus.containsKey(ue)) {
+            return 0;
+        }
+        ServicePrevu service = servicesPrevus.get(ue);
+        double total = service.getVolumeCM() * 1.5 + service.getVolumeTD() + service.getVolumeTP() * 0.75;
+        return (int) Math.round(total);
     }
 
-    /**
-     * Ajoute un enseignement au service prévu pour cet enseignant
-     *
-     * @param ue l'UE concernée
-     * @param volumeCM le volume d'heures de cours magistral
-     * @param volumeTD le volume d'heures de TD
-     * @param volumeTP le volume d'heures de TP
-     */
     public void ajouteEnseignement(UE ue, int volumeCM, int volumeTD, int volumeTP) {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        ServicePrevu service = servicesPrevus.getOrDefault(ue, new ServicePrevu(ue));
+        service.ajouterVolume(volumeCM, volumeTD, volumeTP);
+        servicesPrevus.put(ue, service);
     }
 
+    public void ajouteIntervention(Intervention intervention) {
+        UE ue = intervention.getUe();
+        TypeIntervention type = intervention.getType();
+        int heuresPlanifiees = intervention.getDuree();
+
+        if (resteAPlanifier(ue, type) < heuresPlanifiees) {
+            throw new IllegalArgumentException("Heures planifiées dépassent les heures prévues.");
+        }
+        interventions.add(intervention);
+    }
+
+    public int resteAPlanifier(UE ue, TypeIntervention type) {
+        int prevues = 0;
+        if (servicesPrevus.containsKey(ue)) {
+            ServicePrevu service = servicesPrevus.get(ue);
+            if (type == TypeIntervention.CM) prevues = service.getVolumeCM();
+            if (type == TypeIntervention.TD) prevues = service.getVolumeTD();
+            if (type == TypeIntervention.TP) prevues = service.getVolumeTP();
+        }
+
+        int planifiees = interventions.stream()
+                .filter(intervention -> intervention.getUe().equals(ue) && intervention.getType() == type)
+                .mapToInt(Intervention::getDuree)
+                .sum();
+
+        return Math.max(0, prevues - planifiees);
+    }
+
+    public boolean enSousService() {
+        return heuresPrevues() < 192;
+    }
 }
